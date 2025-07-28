@@ -1,0 +1,78 @@
+package com.javatraining;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.HashMap;
+
+public class ChatbotApp extends JFrame {
+    private final JTextArea chatArea;
+    private final JTextField inputField;
+    private final JButton sendButton;
+    private final HashMap<String, String> faqMap;
+
+    public ChatbotApp() {
+        setTitle("Java Chatbot");
+        setSize(500, 500);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+    
+        faqMap = new HashMap<>();
+        trainBot();
+
+       
+      
+      chatArea = new JTextArea();
+        chatArea.setEditable(false);
+        chatArea.setLineWrap(true);
+        add(new JScrollPane(chatArea), BorderLayout.CENTER);
+
+    
+        JPanel inputPanel = new JPanel(new BorderLayout());
+        inputField = new JTextField();
+        sendButton = new JButton("Send");
+
+        inputPanel.add(inputField, BorderLayout.CENTER);
+        inputPanel.add(sendButton, BorderLayout.EAST);
+        add(inputPanel, BorderLayout.SOUTH);
+
+        
+        ActionListener sendAction = e -> sendMessage();
+        sendButton.addActionListener(sendAction);
+        inputField.addActionListener(sendAction);
+    }
+
+    private void trainBot() {
+        faqMap.put("hello", "Hi there! How can I assist you?");
+        faqMap.put("hi", "Hello! What do you want to know?");
+        faqMap.put("what is your name", "I’m JavaBot, your assistant!");
+        faqMap.put("how are you", "I’m doing well, thank you!");
+        faqMap.put("bye", "Goodbye! Have a great day!");
+        faqMap.put("help", "I can answer basic questions like greetings and FAQs.");
+    }
+
+    private void sendMessage() {
+        String userText = inputField.getText().trim();
+        if (userText.isEmpty()) return;
+
+        chatArea.append("You: " + userText + "\n");
+        String response = getResponse(userText.toLowerCase());
+        chatArea.append("Bot: " + response + "\n\n");
+
+        inputField.setText("");
+    }
+
+    private String getResponse(String input) {
+        for (String key : faqMap.keySet()) {
+            if (input.contains(key)) {
+                return faqMap.get(key);
+            }
+        }
+        return "Sorry, I didn't understand that. Try asking something else.";
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new ChatbotApp().setVisible(true));
+    }
+}
