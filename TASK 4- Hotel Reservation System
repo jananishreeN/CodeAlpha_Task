@@ -1,0 +1,231 @@
+import java.io.*;
+import java.util.*;
+
+class Room {
+    int roomNumber;
+    String category;
+    double price;
+    boolean isBooked;
+
+    public Room(int roomNumber, String category, double price) {
+        this.roomNumber = roomNumber;
+        this.category = category;
+        this.price = price;
+        this.isBooked = false;
+    }
+
+    @Override
+    public String toString() {
+        return roomNumber + " - " + category + " - ₹" + price + " - " + (isBooked ? "Booked" : "Available");
+    }
+}
+
+class Booking {
+    static int counter = 1001;
+    int bookingId;
+    String customerName;
+    Room room;
+
+    public Booking(String customerName, Room room) {
+        this.bookingId = counter++;
+        this.customerName = customerName;
+        this.room = room;
+    }
+
+    @Override
+    public String toString() {
+        return "Booking ID: " + bookingId + ", Customer: " + customerName + ", Room: " + room.roomNumber + " (" + room.category + ")";
+    }
+}
+
+class HotelManager {
+    List<Room> rooms = new ArrayList<>();
+    List<Booking> bookings = new ArrayList<>();
+
+    String roomFile = "rooms.txt";
+    String bookingFile = "bookings.txt";
+
+    public HotelManager() {
+        loadRooms();
+        loadBookings();
+    }
+
+    public void addRoom(Room room) {
+        rooms.add(room);
+        saveRooms();
+    }
+
+    public void viewAvailableRooms(String category) {
+        for (Room room : rooms) {
+            if (!room.isBooked && (category == null || room.category.equalsIgnoreCase(category))) {
+                System.out.println(room);
+            }
+        }
+    }
+
+    public Booking bookRoom(int roomNumber, String customerName) {
+        for (Room room : rooms) {
+            if (room.roomNumber == roomNumber && !room.isBooked) {
+                room.isBooked = true;
+                Booking booking = new Booking(customerName, room);
+                bookings.add(booking);
+                saveRooms();
+                saveBookings();
+                System.out.println("Payment Successful for ₹" + room.price);
+                return booking;
+            }
+        }
+        return null;
+    }
+
+    public boolean cancelBooking(int bookingId) {
+        Iterator<Booking> it = bookings.iterator();
+        while (it.hasNext()) {
+            Booking booking = it.next();
+            if (booking.bookingId == bookingId) {
+                booking.room.isBooked = false;
+                it.remove();
+                saveRooms();
+                saveBookings();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void viewBookings() {
+        if (bookings.isEmpty()) {
+            System.out.println("No bookings yet.");
+        } else {
+            for (Booking booking : bookings) {
+                System.out.println(booking);
+            }
+        }
+    }
+
+    private void saveRooms() {
+        try (PrintWriter out = new PrintWriter(new FileWriter(roomFile))) {
+            for (Room room : rooms) {
+                out.println(room.roomNumber + "," + room.category + "," + room.price + "," + room.isBooked);
+            }
+        } catch (IOException e) {
+            System.out.println("Failed to save rooms.");
+        }
+    }
+
+    private void loadRooms() {
+        rooms.clear();
+        try (BufferedReader reader = new BufferedReader(new FileReader(roomFile))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",");
+                Room room = new Room(Integer.parseInt(parts[0]), parts[1], Double.parseDouble(parts[2]));
+                room.isBooked = Boolean.parseBoolean(parts[3]);
+                rooms.add(room);
+            }
+        } catch (IOException e) {
+            // Load default rooms if file doesn't exist
+            rooms.add(new Room(101, "Standard", 1500));
+            rooms.add(new Room(102, "Standard", 1500));
+            rooms.add(new Room(201, "Deluxe", 2500));
+            rooms.add(new Room(202, "Deluxe", 2500));
+            rooms.add(new Room(301, "Suite", 4000));
+            saveRooms();
+        }
+    }
+
+    private void saveBookings() {
+        try (PrintWriter out = new PrintWriter(new FileWriter(bookingFile))) {
+            for (Booking booking : bookings) {
+                out.println(booking.bookingId + "," + booking.customerName + "," + booking.room.roomNumber);
+            }
+        } catch (IOException e) {
+            System.out.println("Failed to save bookings.");
+        }
+    }
+
+    private void loadBookings() {
+        bookings.clear();
+        try (BufferedReader reader = new BufferedReader(new FileReader(bookingFile))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",");
+                int bId = Integer.parseInt(parts[0]);
+                String name = parts[1];
+                int rNum = Integer.parseInt(parts[2]);
+                for (Room room : rooms) {
+                    if (room.roomNumber == rNum) {
+                        room.isBooked = true;
+                        Booking booking = new Booking(name, room);
+                        booking.bookingId = bId;
+                        bookings.add(booking);
+                        break;
+                    }
+                }
+                Booking.counter = Math.max(Booking.counter, bId + 1);
+            }
+        } catch (IOException e) {
+            System.out.println("No previous bookings found.");
+        }
+    }
+}
+
+public class HotelBookingSystem {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        HotelManager manager = new HotelManager();
+        int choice;
+
+        do {
+            System.out.println("\n---- Hotel Booking System ----");
+            System.out.println("1. View Available Rooms");
+            System.out.println("2. Book Room");
+            System.out.println("3. Cancel Booking");
+            System.out.println("4. View All Bookings");
+            System.out.println("5. Exit");
+            System.out.print("Enter choice: ");
+            choice = sc.nextInt();
+            sc.nextLine();
+
+            switch (choice) {
+                case 1:
+                    System.out.print("Enter room category (Standard/Deluxe/Suite) or press Enter to view all: ");
+                    String cat = sc.nextLine();
+                    manager.viewAvailableRooms(cat.isEmpty() ? null : cat);
+                    break;
+
+                case 2:
+                    System.out.print("Enter room number to book: ");
+                    int rnum = sc.nextInt();
+                    sc.nextLine();
+                    System.out.print("Enter your name: ");
+                    String cname = sc.nextLine();
+                    Booking b = manager.bookRoom(rnum, cname);
+                    if (b != null) {
+                        System.out.println("Booking successful! Booking ID: " + b.bookingId);
+                    } else {
+                        System.out.println("Booking failed. Room may not be available.");
+                    }
+                    break;
+
+                case 3:
+                    System.out.print("Enter booking ID to cancel: ");
+                    int bid = sc.nextInt();
+                    if (manager.cancelBooking(bid)) {
+                        System.out.println("Booking cancelled.");
+                    } else {
+                        System.out.println("Invalid booking ID.");
+                    }
+                    break;
+
+                case 4:
+                    manager.viewBookings();
+                    break;
+
+                case 5:
+                    System.out.println("Thank you for using Hotel Booking System.");
+                    break;
+            }
+        } while (choice != 5);
+    }
+}
